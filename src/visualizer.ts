@@ -1,5 +1,4 @@
 import type { ExtensionContext } from "@earendil-works/pi-coding-agent";
-import { truncateToWidth } from "@earendil-works/pi-tui";
 import { CAPTURE_SAMPLE_RATE } from "./audio-constants.js";
 import { STATUS_WIDGET_KEY } from "./shortcut-core.js";
 
@@ -239,7 +238,7 @@ export class RecordingMeter {
 
   setPartial(text: string): void {
     // Remote text is untrusted terminal input: strip controls/escape sequences.
-    this.partial = text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/[\x00-\x1f\x7f-\x9f]/g, " ").slice(-2000);
+    this.partial = text.replace(/\x1b\[[0-?]*[ -/]*[@-~]/g, "").replace(/[\x00-\x1f\x7f-\x9f]/g, " ");
     this.lastLine = undefined;
     this.paint();
   }
@@ -276,7 +275,10 @@ export class RecordingMeter {
     if (line === this.lastLine) return;
     this.lastLine = line;
     const lines = [line];
-    if (this.partial) lines.push(ctx.ui.theme.fg("muted", truncateToWidth(this.partial, Math.max(10, (process.stdout.columns || 80) - 4))));
+    // Pi wraps each widget entry with Text at the actual available width,
+    // including padding and terminal resizes. Keep the full partial here;
+    // pre-truncating it would permanently hide text behind an ellipsis.
+    if (this.partial) lines.push(ctx.ui.theme.fg("muted", this.partial));
     ctx.ui.setWidget(WIDGET_KEY, lines);
   }
 }
