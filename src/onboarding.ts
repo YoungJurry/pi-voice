@@ -182,7 +182,7 @@ async function finishOnboarding(
       continue;
     }
     if (result?.action === "microphone") {
-      const permission = microphonePermission();
+      const permission = await microphonePermission();
       const microphone = await chooseMicrophone(ctx, configured.microphone, permission);
       if (!microphone || microphonesEqual(microphone, configured.microphone)) continue;
       const updated = { ...configured, microphone };

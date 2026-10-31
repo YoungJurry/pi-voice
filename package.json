@@ -38,7 +38,7 @@
   },
   "scripts": {
     "check": "tsc --noEmit",
-    "test": "npm run check && node scripts/test-user-only.mjs && node scripts/test-cloud.mjs && node scripts/test-settings.mjs && node scripts/test-visualizer.mjs",
+    "test": "npm run check && node scripts/test-user-only.mjs && node scripts/test-cloud.mjs && node scripts/test-settings.mjs && node scripts/test-visualizer.mjs && node scripts/test-native-import.mjs",
     "prepublishOnly": "npm test"
   },
   "pi": {

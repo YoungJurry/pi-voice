@@ -1,27 +1,27 @@
-import {
-  listInputDevices,
-  permissionStatus,
-  Recorder,
-  setLogHandler,
-  type InputDevice,
-  type Permission,
-  type Recording,
-} from "@handy-computer/recorder";
+import type { InputDevice, Permission, Recording } from "@handy-computer/recorder";
 import { CAPTURE_CHUNK_SAMPLES, CAPTURE_SAMPLE_RATE } from "./audio-constants.js";
 import type { Capture, CaptureSinks } from "./dictation-controller.js";
 import { logLevel, writeLog } from "./log.js";
+import { importWithoutReportNetwork } from "./native-import.js";
 import type { MicrophoneSetting } from "./settings.js";
 
 export type { InputDevice, Permission };
 
-// The recorder's own log into Pi Voice's, stamped with when each line was
-// written: lines from a blocked event loop arrive late but sort correctly.
-const level = logLevel();
-if (level) {
-  setLogHandler(
-    (record) => writeLog(record.level === "trace" ? "debug" : record.level, "recorder", record.message, record.timeMs),
-    { level: level === "debug" ? "debug" : "info" },
-  );
+let recorderModule: Promise<typeof import("@handy-computer/recorder")> | undefined;
+
+function loadRecorder(): Promise<typeof import("@handy-computer/recorder")> {
+  return (recorderModule ??= importWithoutReportNetwork(() => import("@handy-computer/recorder"))
+    .then((recorder) => {
+      // Preserve native timestamps: log callbacks can arrive after a blocked loop.
+      const level = logLevel();
+      if (level) {
+        recorder.setLogHandler(
+          (record) => writeLog(record.level === "trace" ? "debug" : record.level, "recorder", record.message, record.timeMs),
+          { level: level === "debug" ? "debug" : "info" },
+        );
+      }
+      return recorder;
+    }));
 }
 
 export class MicrophoneUnavailableError extends Error {
@@ -33,12 +33,13 @@ export class MicrophoneUnavailableError extends Error {
 
 /** Input devices to offer, without PulseAudio monitors of outputs. */
 export async function getAvailableMicrophones(): Promise<InputDevice[]> {
+  const { listInputDevices } = await loadRecorder();
   return (await listInputDevices()).filter((device) => !device.isMonitor);
 }
 
-/** A synchronous read that never prompts. */
-export function microphonePermission(): Permission {
-  return permissionStatus();
+/** Loads the recorder safely, then reads permission without prompting. */
+export async function microphonePermission(): Promise<Permission> {
+  return (await loadRecorder()).permissionStatus();
 }
 
 export function findMicrophone(
@@ -62,6 +63,7 @@ function interruption(recording: Recording): Error | undefined {
 
 /** Opens the microphone and starts recording 16 kHz mono into `sinks`. */
 export async function openMicrophone(microphone: MicrophoneSetting, sinks: CaptureSinks): Promise<Capture> {
+  const { listInputDevices, Recorder } = await loadRecorder();
   let device: InputDevice | undefined;
   if (microphone.type === "device") {
     device = findMicrophone(await listInputDevices(), microphone);

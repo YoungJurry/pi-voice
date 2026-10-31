@@ -325,7 +325,7 @@ export function createPiVoiceRuntime(
     logStep("loading audio module");
     const { microphonePermission, openMicrophone } = await loadAudio();
     if (process.platform === "darwin") {
-      if (microphonePermission() === "denied") {
+      if (await microphonePermission() === "denied") {
         const openSettings = await ctx.ui.confirm(
           "Microphone access",
           "Microphone access is denied in System Settings. Open Privacy & Security → Microphone settings?",

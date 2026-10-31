@@ -324,7 +324,7 @@ export async function showSettingsMenu(
   let reload = configured.shortcut !== registeredShortcut;
   // Checked on open and refreshed whenever the Microphone row is activated,
   // where access problems are surfaced and fixed.
-  let permission = microphonePermission();
+  let permission = await microphonePermission();
   while (true) {
     const action = await showSettingsHome(ctx, configured, permission);
     if (!action) return reload;
@@ -412,7 +412,7 @@ export async function showSettingsMenu(
     }
 
     if (action === "microphone") {
-      permission = microphonePermission();
+      permission = await microphonePermission();
       if (permission === "denied" && process.platform === "darwin") {
         // Choosing a device is pointless while capture is blocked; go
         // straight to the fix.

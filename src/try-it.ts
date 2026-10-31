@@ -312,11 +312,12 @@ export async function tryVoice(ctx: ExtensionContext, settings: TranscribeSettin
   const service = new TranscriptionService(undefined, (pcm, signal) => voiceActivity.scoreClip(pcm, signal));
   let pane: TryItPane | undefined;
   try {
+    const showMacPermissionNote = process.platform === "darwin" && await microphonePermission() === "not-determined";
     return await ctx.ui.custom<TryItResult>((tui, theme, keybindings, done) =>
       (pane = new TryItPane(tui, theme, keybindings, settings, service, done, {
         openCapture: openMicrophone,
         createSpeechFilter: (configured, onSpeech) => voiceActivity.createFilter(configured, onSpeech),
-        showMacPermissionNote: process.platform === "darwin" && microphonePermission() === "not-determined",
+        showMacPermissionNote,
       })),
     );
   } finally {
