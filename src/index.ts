@@ -62,15 +62,24 @@ export default function piVoice(pi: ExtensionAPI): void {
       );
     }
 
-    // Warm the runtime after the first paint so the first shortcut press does
-    // not pay the module-graph parse on the input path. Node blocks the event
-    // loop for ~1.4s resolving this graph; doing it at idle keeps that cost off
-    // the keypress. Only for an already-configured install: an unconfigured one
-    // would load the graph and then still have to run onboarding. Failures stay
-    // silent here — the shortcut path reports them.
-    if (existsSync(settingsPath()) || existsSync(legacySettingsPath())) {
+    // Warm the modules the first shortcut press would otherwise resolve on the
+    // input path. Node blocks its event loop for ~1.4s on the runtime graph and
+    // ~120ms more on settings/audio/visualizer; doing it at idle keeps that off
+    // the keypress. Only for an interactive, already-configured install: a
+    // headless run cannot use the shortcut, and an unconfigured one would load
+    // the graph and then still have to run onboarding. Failures stay silent
+    // here — the shortcut path reports them.
+    if (ctx.hasUI && (existsSync(settingsPath()) || existsSync(legacySettingsPath()))) {
       const warm = setTimeout(() => {
-        void loadRuntime().catch(() => undefined);
+        void loadRuntime()
+          .then(() =>
+            Promise.allSettled([
+              import("./settings.js"),
+              import("./audio.js"),
+              import("./visualizer.js"),
+            ]),
+          )
+          .catch(() => undefined);
       }, 0);
       warm.unref?.();
     }
