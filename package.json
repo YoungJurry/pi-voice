@@ -1,6 +1,6 @@
 {
   "name": "pi-voice-user",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "User-only speech input for Pi; no agent tools or prompt injection",
   "type": "module",
   "license": "MIT",
