@@ -61,6 +61,19 @@ export default function piVoice(pi: ExtensionAPI): void {
         "info",
       );
     }
+
+    // Warm the runtime after the first paint so the first shortcut press does
+    // not pay the module-graph parse on the input path. Node blocks the event
+    // loop for ~1.4s resolving this graph; doing it at idle keeps that cost off
+    // the keypress. Only for an already-configured install: an unconfigured one
+    // would load the graph and then still have to run onboarding. Failures stay
+    // silent here — the shortcut path reports them.
+    if (existsSync(settingsPath()) || existsSync(legacySettingsPath())) {
+      const warm = setTimeout(() => {
+        void loadRuntime().catch(() => undefined);
+      }, 0);
+      warm.unref?.();
+    }
   });
 
   // User-input only: never register tools or add model-facing prompt guidance.
